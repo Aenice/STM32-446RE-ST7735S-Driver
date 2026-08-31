@@ -6,6 +6,7 @@
 #include "main.h"
 #include "spi.h"
 #include "gpio.h"
+#include "dma.h"
 
 #include "Display/Types.hpp"
 #include "Utils.hpp"
@@ -37,21 +38,21 @@ public:
     void setTextScale(size_t scale);
     void setTextColor(const Color& color);
     void setTextSpacing(const Spacing& spacing);
-    void drawChar(const Point& point, char character) const;
-    void drawText(const Point& point, const char* text, size_t size) const;
+    void drawChar(const Point& point, char character);
+    void drawText(const Point& point, const char* text, size_t size);
 
-    void drawRect(const Point& point, const Size& size, const Color& color) const;
-    void fillRect(const Point& point, const Size& size, const Color& color) const;
-    void drawCircle(const Point& center, uint8_t radius, const Color& color) const;
-    void fillCircle(const Point& center, uint8_t radius, const Color& color) const;
-    void drawEllipse(const Point& center, uint8_t radiusX, uint8_t radiusY, const Color& color) const;
-    void fillEllipse(const Point& center, uint8_t radiusX, uint8_t radiusY, const Color& color) const;
-    void drawTriangle(const Point& p1, const Point& p2, const Point& p3, const Color& color) const;
-    void fillTriangle(const Point& p1, const Point& p2, const Point& p3, const Color& color) const;
+    void drawRect(const Point& point, const Size& size, const Color& color);
+    void fillRect(const Point& point, const Size& size, const Color& color);
+    void drawCircle(const Point& center, uint8_t radius, const Color& color);
+    void fillCircle(const Point& center, uint8_t radius, const Color& color);
+    void drawEllipse(const Point& center, uint8_t radiusX, uint8_t radiusY, const Color& color);
+    void fillEllipse(const Point& center, uint8_t radiusX, uint8_t radiusY, const Color& color);
+    void drawTriangle(const Point& p1, const Point& p2, const Point& p3, const Color& color);
+    void fillTriangle(const Point& p1, const Point& p2, const Point& p3, const Color& color);
 
-    void drawLine(const Point& start, const Point& end, uint8_t thickness, const Color& color) const;
+    void drawLine(const Point& start, const Point& end, uint8_t thickness, const Color& color);
 
-    void fillBackground(const Color& color) const;
+    void fillBackground(const Color& color);
 
 private:
     // Configure
@@ -64,10 +65,10 @@ private:
 
     // Transport
     void setTransferMode(const TransferType mode) const;
-    void transport(const uint8_t* value, const size_t size) const;
+    void transport(const uint8_t* value, size_t size) const;
 
     // Draw
-    void draw(const Rect& rect, const Color& color) const;
+    void draw(const Rect& rect, const Color& color);
     void setDrawingArea(const Rect& rect) const;
 
     uint16_t getSize(Coordinates coordinates) const;
@@ -97,6 +98,10 @@ private:
     Color m_textColor = {255, 255, 255};
     uint8_t m_textScale = 1;
     Spacing m_textSpacing = {1, 1};
+
+    static constexpr size_t MAX_PIXELS = 128 * 160;
+
+    uint8_t m_frameBuffer[MAX_PIXELS * 3];
 };
 
 #endif

@@ -3,6 +3,7 @@
 #include "../../Drivers/ST7735S/ST7735S.hpp"
 #include "spi.h"
 #include "gpio.h"
+#include "dma.h"
 
 void SystemClock_Config(void);
 
@@ -22,10 +23,12 @@ int main(void)
 	SystemClock_Config();
 
 	MX_GPIO_Init();
+	MX_DMA_Init();
 	MX_SPI1_Init();
 
 	display.init();
 	display.setSelected(true);
+
 	/*
 	display.fillBackground({18, 12, 30});
 
@@ -60,13 +63,13 @@ int main(void)
 	);
 	*/
 	display.setOrientation(Orientation::Landscape);
-	display.setTextScale(1);
-	display.setTextSpacing({3,5});
-	display.setTextColor({0, 255, 0});
+	display.setTextScale(2);
+	display.setTextSpacing({2,3});
+	display.setTextColor({128, 128, 128});
 
 	char output[] = "Hello, world!, ST7735S TEST: ABC abc 0123 !@#$%^&*() [] {} <> +-=/!";
 
-	display.fillBackground({0, 0, 255});
+	display.fillBackground({252, 246, 13});
 	display.drawText({10, 10}, output, sizeof(output));
 
 	display.setSelected(false);

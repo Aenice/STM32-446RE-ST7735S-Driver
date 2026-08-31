@@ -347,14 +347,29 @@ void ST7735S::init()
     setSelected(false);
 }
 
-void ST7735S::transport(const uint8_t* value, const size_t size) const
+static volatile bool dmaFinished = false;
+
+void ST7735S::transport(const uint8_t* value, size_t size) const
 {
-    HAL_SPI_Transmit(
+    while (dmaFinished)
+    {
+    }
+
+    dmaFinished = true;
+
+    volatile HAL_StatusTypeDef status = HAL_SPI_Transmit_DMA(
         m_spi,
         value,
-        size,
-        HAL_MAX_DELAY
+        size
     );
+}
+
+void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+    if (hspi == &hspi1)
+    {
+        dmaFinished = false;
+    }
 }
 
 void ST7735S::setColorOrder(ColorOrder order)
@@ -519,7 +534,7 @@ void ST7735S::setTextSpacing(const Spacing& spacing)
 	m_textSpacing = spacing;
 }
 
-void ST7735S::drawText(const Point& point, const char* text, size_t size) const
+void ST7735S::drawText(const Point& point, const char* text, size_t size)
 {
 	static uint8_t lineBreak = 0;
 
@@ -555,7 +570,7 @@ void ST7735S::drawText(const Point& point, const char* text, size_t size) const
 	lineBreak = 0;
 }
 
-void ST7735S::drawChar(const Point& point, char character) const
+void ST7735S::drawChar(const Point& point, char character)
 {
     if (character < 32 || character > 126)
     {
@@ -579,7 +594,7 @@ void ST7735S::drawChar(const Point& point, char character) const
 	}
 }
 
-void ST7735S::draw(const Rect& rect, const Color& color) const
+void ST7735S::draw(const Rect& rect, const Color& color)
 {
 	uint8_t cmd;
 
@@ -594,8 +609,14 @@ void ST7735S::draw(const Rect& rect, const Color& color) const
 
 	uint8_t data[3] {};
 	const uint16_t pixels = rect.size.width * rect.size.height;
+	uint32_t frameBufferSize = 0;
 
-	switch(getPixelFormat())
+	if (pixels > MAX_PIXELS)
+	{
+		return;
+	}
+
+	switch(m_pixelFormat)
 	{
 	case PixelFormat::RGB444:
 	{
@@ -603,25 +624,28 @@ void ST7735S::draw(const Rect& rect, const Color& color) const
 	    uint8_t g = color.g >> 4;
 	    uint8_t b = color.b >> 4;
 
-	    // 2 RGB444 pixels = 24 bits = 3 bytes
+	    // 2 RGB444 pixels = 3 bytes
 	    data[0] = (r << 4) | g;
 	    data[1] = (b << 4) | r;
 	    data[2] = (g << 4) | b;
 
-	    for (size_t i = 0; i + 1 < pixels; i += 2)
+	    frameBufferSize = (pixels / 2) * 3 + (pixels % 2) * 2;
+
+	    size_t i = 0;
+	    for (; i < (pixels / 2) * 3; i += 3)
 	    {
-	        transport(data, 3);
+	        m_frameBuffer[i]     = data[0];
+	        m_frameBuffer[i + 1] = data[1];
+	        m_frameBuffer[i + 2] = data[2];
 	    }
 
 	    if (pixels % 2 != 0)
 	    {
-	        uint8_t last[2];
-
-	        last[0] = (r << 4) | g;
-	        last[1] = b << 4;
-
-	        transport(last, 2);
+	        m_frameBuffer[i]     = (r << 4) | g;
+	        m_frameBuffer[i + 1] = b << 4;
 	    }
+
+	    transport(m_frameBuffer, frameBufferSize);
 
 	    break;
 	}
@@ -635,11 +659,16 @@ void ST7735S::draw(const Rect& rect, const Color& color) const
 		data[0] = rgb565 >> 8;
 		data[1] = rgb565 & 0xFF;
 
+		frameBufferSize = pixels * 2;
 
-		for (size_t i = 0; i < pixels; i++)
+		for (size_t i = 0; i < frameBufferSize; i += 2)
 		{
-		    transport(data, 2);
+			m_frameBuffer[i] 	 = data[0];
+			m_frameBuffer[i + 1] = data[1];
 		}
+
+		transport(m_frameBuffer, frameBufferSize);
+
 		break;
 	}
 	case PixelFormat::RGB666:
@@ -652,10 +681,17 @@ void ST7735S::draw(const Rect& rect, const Color& color) const
 	    data[1] = g << 2;
 	    data[2] = b << 2;
 
-		for (size_t i = 0; i < pixels; i++)
+		frameBufferSize = pixels * 3;
+
+		for (size_t i = 0; i < frameBufferSize; i += 3)
 		{
-		    transport(data, 3);
+			m_frameBuffer[i] 	 = data[0];
+			m_frameBuffer[i + 1] = data[1];
+			m_frameBuffer[i + 2] = data[2];
 		}
+
+		transport(m_frameBuffer, frameBufferSize);
+
 	    break;
 	}
 	default:
@@ -844,7 +880,7 @@ void ST7735S::configureRgb565Lut() const
 	transport(rgbLut, sizeof(rgbLut));
 }
 
-void ST7735S::drawLine(const Point& start, const Point& end, uint8_t thickness, const Color& color) const
+void ST7735S::drawLine(const Point& start, const Point& end, uint8_t thickness, const Color& color)
 {
     const uint16_t width = m_displayInfo.width;
     const uint16_t height = m_displayInfo.height;
@@ -948,7 +984,7 @@ void ST7735S::drawLine(const Point& start, const Point& end, uint8_t thickness, 
     }
 }
 
-void ST7735S::fillBackground(const Color& color) const
+void ST7735S::fillBackground(const Color& color)
 {
 	const uint8_t x[] =
 	{
@@ -967,7 +1003,7 @@ void ST7735S::fillBackground(const Color& color) const
 	draw({{x, sizeof(x)},{y, sizeof(y)}, m_displayInfo.width, m_displayInfo.height}, color);
 }
 
-void ST7735S::drawRect(const Point& point, const Size& size, const Color& color) const
+void ST7735S::drawRect(const Point& point, const Size& size, const Color& color)
 {
     if (size.width == 0 || size.height == 0)
     {
@@ -1006,7 +1042,7 @@ void ST7735S::drawRect(const Point& point, const Size& size, const Color& color)
     );
 }
 
-void ST7735S::fillRect(const Point& point, const Size& size, const Color& color) const
+void ST7735S::fillRect(const Point& point, const Size& size, const Color& color)
 {
     if (size.width == 0 || size.height == 0)
     {
@@ -1043,7 +1079,7 @@ void ST7735S::fillRect(const Point& point, const Size& size, const Color& color)
     );
 }
 
-void ST7735S::drawCircle(const Point& center, uint8_t radius, const Color& color) const
+void ST7735S::drawCircle(const Point& center, uint8_t radius, const Color& color)
 {
     int16_t x = 0;
     int16_t y = radius;
@@ -1087,7 +1123,7 @@ void ST7735S::drawCircle(const Point& center, uint8_t radius, const Color& color
     }
 }
 
-void ST7735S::fillCircle(const Point& center, uint8_t radius, const Color& color) const
+void ST7735S::fillCircle(const Point& center, uint8_t radius, const Color& color)
 {
 	int16_t x = 0;
 	int16_t y = radius;
@@ -1191,7 +1227,7 @@ void ST7735S::fillCircle(const Point& center, uint8_t radius, const Color& color
 	}
 }
 
-void ST7735S::drawEllipse(const Point& center, uint8_t radiusX, uint8_t radiusY, const Color& color) const
+void ST7735S::drawEllipse(const Point& center, uint8_t radiusX, uint8_t radiusY, const Color& color)
 {
     if (radiusX == 0 || radiusY == 0)
     {
@@ -1289,7 +1325,7 @@ void ST7735S::drawEllipse(const Point& center, uint8_t radiusX, uint8_t radiusY,
     }
 }
 
-void ST7735S::fillEllipse(const Point& center, uint8_t radiusX, uint8_t radiusY, const Color& color) const
+void ST7735S::fillEllipse(const Point& center, uint8_t radiusX, uint8_t radiusY, const Color& color)
 {
     if (radiusX == 0 || radiusY == 0)
     {
@@ -1553,14 +1589,14 @@ void ST7735S::fillEllipse(const Point& center, uint8_t radiusX, uint8_t radiusY,
     }
 }
 
-void ST7735S::drawTriangle(const Point& p1, const Point& p2, const Point& p3, const Color& color) const
+void ST7735S::drawTriangle(const Point& p1, const Point& p2, const Point& p3, const Color& color)
 {
     drawLine(p1, p2, 1, color);
     drawLine(p2, p3, 1, color);
     drawLine(p3, p1, 1, color);
 }
 
-void ST7735S::fillTriangle(const Point& p1, const Point& p2, const Point& p3, const Color& color) const
+void ST7735S::fillTriangle(const Point& p1, const Point& p2, const Point& p3, const Color& color)
 {
     Point a = p1;
     Point b = p2;
