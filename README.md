@@ -84,14 +84,17 @@ Project/
 │       ├── dma.c
 │       ├── spi.c
 │       └── gpio.c
+│
 ├── Domain/
 │   └── Display/
 │       └── Types.hpp
+│
 ├── Assets/
 │   └── Test_imgs/
 │       ├── epd_bitmap_dragon.h
 │       ├── epd_bitmap_hor.h
 │       └── epd_bitmap_ver.h
+│
 ├── Utils/
 │   ├── Utils.hpp
 │   └── Utils.cpp
@@ -355,8 +358,8 @@ The driver separates **application logic** from **low-level hardware communicati
 
 ## 🎬 Demo
 
-<img width="320" height="250" alt="Screenshot_20260831_044302_Gallery" src="https://github.com/user-attachments/assets/bb1747e7-d0dc-4eba-883f-771ab11cd5e8" /> <img width="220" height="350" alt="20260831_024707" src="https://github.com/user-attachments/assets/22ac9ef5-bf77-4cdb-8b88-650d70548c9c" /><img width="220" height="350" alt="20260902_025237" src="https://github.com/user-attachments/assets/f1d2d342-4bbb-4acf-b248-c4ce7769ad58" />
-<img width="503" height="768" alt="20260902_025328" src="https://github.com/user-attachments/assets/c6d521bc-6c4e-46c0-b649-75688e0f1514" />
+<img width="320" height="250" alt="Screenshot_20260831_044302_Gallery" src="https://github.com/user-attachments/assets/bb1747e7-d0dc-4eba-883f-771ab11cd5e8" /> <img width="220" height="350" alt="20260831_024707" src="https://github.com/user-attachments/assets/22ac9ef5-bf77-4cdb-8b88-650d70548c9c" /><img width="160" height="128" alt="20260902_025237" src="https://github.com/user-attachments/assets/f1d2d342-4bbb-4acf-b248-c4ce7769ad58" />
+<img width="128" height="160" alt="20260902_025328" src="https://github.com/user-attachments/assets/c6d521bc-6c4e-46c0-b649-75688e0f1514" />
 
 ## Display
 
