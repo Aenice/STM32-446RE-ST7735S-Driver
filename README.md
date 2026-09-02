@@ -33,7 +33,7 @@ This project demonstrates how to create a reusable hardware driver for the **ST7
 * 🖥️ **Display:** ST7735S TFT
 * 🔗 **Interface:** SPI
 * ⚡ Data Transfer: DMA
-* 
+  
 ## 📌 Default Configuration
 
 By default, the example uses **SPI1** and the following GPIO configuration:
