@@ -4,15 +4,6 @@ An example of developing a **C++ TFT display driver** for STM32 using the HAL li
 
 This project demonstrates how to create a reusable hardware driver for the **ST7735S TFT display controller**, hiding low-level SPI, GPIO, reset, and display configuration operations behind a simple C++ class.
 
-## 🎬 Demo
-
-* First
-<img width="320" height="250" alt="Screenshot_20260831_044302_Gallery" src="https://github.com/user-attachments/assets/bb1747e7-d0dc-4eba-883f-771ab11cd5e8" />
-
-* Second
-<img width="220" height="350" alt="20260831_024707" src="https://github.com/user-attachments/assets/22ac9ef5-bf77-4cdb-8b88-650d70548c9c" />
-
-
 ## ✨ Features
 
 * 🔧 Object-oriented **C++ driver design**
@@ -25,6 +16,7 @@ This project demonstrates how to create a reusable hardware driver for the **ST7
 * 📝 Text rendering with **5x7 font**
 * 🔍 Text scaling
 * ↔️ Custom text spacing
+* 🖼️ Image rendering support with configurable position and size
 * ▫️ Rectangle drawing and filling
 * ⚪ Circle drawing and filling
 * 🥚 Ellipse drawing and filling
@@ -40,7 +32,8 @@ This project demonstrates how to create a reusable hardware driver for the **ST7
 * 🔌 **Board:** NUCLEO-F446RE
 * 🖥️ **Display:** ST7735S TFT
 * 🔗 **Interface:** SPI
-
+* ⚡ Data Transfer: DMA
+* 
 ## 📌 Default Configuration
 
 By default, the example uses **SPI1** and the following GPIO configuration:
@@ -82,17 +75,23 @@ Project/
 ├── Core/
 │   ├── Inc/
 │   │   ├── main.h
+│   │   ├── dma.h
 │   │   ├── spi.h
 │   │   └── gpio.h
 │   │
 │   └── Src/
 │       ├── main.cpp
+│       ├── dma.c
 │       ├── spi.c
 │       └── gpio.c
 ├── Domain/
 │   └── Display/
 │       └── Types.hpp
-│   
+├── Assets/
+│   └── Test_imgs/
+│       ├── epd_bitmap_dragon.h
+│       ├── epd_bitmap_hor.h
+│       └── epd_bitmap_ver.h
 ├── Utils/
 │   ├── Utils.hpp
 │   └── Utils.cpp
@@ -105,6 +104,7 @@ Project/
 * **C++17**
 * **STM32 HAL**
 * **SPI**
+* **DMA**
 * **GPIO**
 * **TFT Graphics**
 * **Embedded C++**
@@ -121,6 +121,7 @@ HAL_Init();
 SystemClock_Config();
 
 MX_GPIO_Init();
+MX_DMA_Init();
 MX_SPI1_Init();
 
 display.init();
@@ -161,6 +162,8 @@ HAL_Init()
 SystemClock_Config()
     ↓
 MX_GPIO_Init()
+    ↓
+MX_DMA_Init()
     ↓
 MX_SPI1_Init()
     ↓
@@ -210,6 +213,11 @@ display.drawLine(
     5,
     {255, 255, 255}
 );
+```
+## 🖼️ Image Drawing Example
+
+```cpp
+display.drawImage(epd_bitmap_hor, {0, 0}, {160, 128});
 ```
 
 ## 📝 Text Example
@@ -343,6 +351,12 @@ display.fillBackground(...);
 The goal of this project is to demonstrate **embedded C++ driver development** for TFT displays and show how to build a reusable graphics driver for **STM32 microcontrollers**.
 
 The driver separates **application logic** from **low-level hardware communication**, making the ST7735S driver easy to reuse in other STM32 projects.
+
+
+## 🎬 Demo
+
+<img width="320" height="250" alt="Screenshot_20260831_044302_Gallery" src="https://github.com/user-attachments/assets/bb1747e7-d0dc-4eba-883f-771ab11cd5e8" /> <img width="220" height="350" alt="20260831_024707" src="https://github.com/user-attachments/assets/22ac9ef5-bf77-4cdb-8b88-650d70548c9c" /><img width="220" height="350" alt="20260902_025237" src="https://github.com/user-attachments/assets/f1d2d342-4bbb-4acf-b248-c4ce7769ad58" />
+<img width="503" height="768" alt="20260902_025328" src="https://github.com/user-attachments/assets/c6d521bc-6c4e-46c0-b649-75688e0f1514" />
 
 ## Display
 
