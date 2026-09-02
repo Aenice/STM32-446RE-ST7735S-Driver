@@ -34,6 +34,7 @@ public:
 
     void setSelected(const bool selected) const;
 
+    /* It all accepts only RGB888 */
     // Drawing
     void setTextScale(size_t scale);
     void setTextColor(const Color& color);
@@ -41,6 +42,7 @@ public:
     void drawChar(const Point& point, char character);
     void drawText(const Point& point, const char* text, size_t size);
 
+    void drawImage(const uint32_t* image, const Point& point, const Size& size);
     void drawRect(const Point& point, const Size& size, const Color& color);
     void fillRect(const Point& point, const Size& size, const Color& color);
     void drawCircle(const Point& center, uint8_t radius, const Color& color);
@@ -69,6 +71,12 @@ private:
 
     // Draw
     void draw(const Rect& rect, const Color& color);
+
+    void encodePixels(const uint32_t* image, const Size& size);
+    void encodePixels(const Color& color, const Size& size);
+
+    void SendPixels(const uint8_t* value, size_t size);
+
     void setDrawingArea(const Rect& rect) const;
 
     uint16_t getSize(Coordinates coordinates) const;

@@ -1,9 +1,12 @@
 #include "main.h"
-
-#include "../../Drivers/ST7735S/ST7735S.hpp"
 #include "spi.h"
 #include "gpio.h"
 #include "dma.h"
+
+#include "ST7735S.hpp"
+#include "epd_bitmap_dragon.h"
+#include "epd_bitmap_hor.h"
+#include "epd_bitmap_ver.h"
 
 void SystemClock_Config(void);
 
@@ -62,21 +65,40 @@ int main(void)
 		{255, 255, 255}
 	);
 	*/
-	display.setOrientation(Orientation::Landscape);
-	display.setTextScale(2);
-	display.setTextSpacing({2,3});
-	display.setTextColor({128, 128, 128});
+	//display.setOrientation(Orientation::Landscape);
+	//display.setTextScale(2);
+	//display.setTextSpacing({2,3});
+	//display.setTextColor({128, 128, 128});
 
-	char output[] = "Hello, world!, ST7735S TEST: ABC abc 0123 !@#$%^&*() [] {} <> +-=/!";
+	//char output[] = "Hello, world!, ST7735S TEST: ABC abc 0123 !@#$%^&*() [] {} <> +-=/!";
+	//display.drawText({10,10}, output, sizeof(output));
 
-	display.fillBackground({252, 246, 13});
-	display.drawText({10, 10}, output, sizeof(output));
-
-	display.setSelected(false);
+	//display.fillBackground({0, 0, 0});
 
 	while (true)
 	{
+		HAL_Delay(2500);
+		display.setOrientation(Orientation::Landscape);
+
+		display.drawImage(epd_bitmap_hor, {0, 0}, {160, 128});
+
+		HAL_Delay(2500);
+		display.setOrientation(Orientation::LandscapeFlipped);
+
+		display.drawImage(epd_bitmap_hor, {0, 0}, {160, 128});
+
+		HAL_Delay(2500);
+		display.setOrientation(Orientation::Portrait);
+
+		display.drawImage(epd_bitmap_ver, {0, 0}, {128, 160});
+
+		HAL_Delay(2500);
+		display.setOrientation(Orientation::PortraitFlipped);
+
+		display.drawImage(epd_bitmap_ver, {0, 0}, {128, 160});
 	}
+
+	display.setSelected(false);
 }
 
 void SystemClock_Config(void)

@@ -49,9 +49,10 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    Drivers/ST7735S
-    Domain
-    Utils
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/ST7735S
+    ${CMAKE_CURRENT_SOURCE_DIR}/Domain
+    ${CMAKE_CURRENT_SOURCE_DIR}/Utils
+    ${CMAKE_CURRENT_SOURCE_DIR}/Assets/Test_imgs
 )
 
 # Add project symbols (macros)

@@ -570,6 +570,45 @@ void ST7735S::drawText(const Point& point, const char* text, size_t size)
 	lineBreak = 0;
 }
 
+void ST7735S::drawImage(const uint32_t* image, const Point& point, const Size& size)
+{
+    if (size.width == 0 || size.height == 0)
+    {
+        return;
+    }
+
+	uint8_t cmd;
+
+    const uint16_t xEnd = point.x + size.width - 1;
+    const uint16_t yEnd = point.y + size.height - 1;
+
+    const uint8_t x[] =
+    {
+        static_cast<uint8_t>(point.x >> 8),
+        static_cast<uint8_t>(point.x & 0xFF),
+        static_cast<uint8_t>(xEnd >> 8),
+        static_cast<uint8_t>(xEnd & 0xFF)
+    };
+
+    const uint8_t y[] =
+    {
+        static_cast<uint8_t>(point.y >> 8),
+        static_cast<uint8_t>(point.y & 0xFF),
+        static_cast<uint8_t>(yEnd >> 8),
+        static_cast<uint8_t>(yEnd & 0xFF)
+    };
+
+	setDrawingArea({x, sizeof(x), y, sizeof(y), size});
+
+	setTransferMode(TransferType::CMD);
+	// 0x2C = Memory Write
+	cmd = static_cast<uint8_t>(Command::RAMWR);
+	transport(&cmd, sizeof(cmd));
+
+	setTransferMode(TransferType::DATA);
+	encodePixels(image, size);
+}
+
 void ST7735S::drawChar(const Point& point, char character)
 {
     if (character < 32 || character > 126)
@@ -602,19 +641,23 @@ void ST7735S::draw(const Rect& rect, const Color& color)
 
 	setTransferMode(TransferType::CMD);
 	// 0x2C = Memory Write
-	cmd =  static_cast<uint8_t>(Command::RAMWR);
+	cmd = static_cast<uint8_t>(Command::RAMWR);
 	transport(&cmd, sizeof(cmd));
 
 	setTransferMode(TransferType::DATA);
+	encodePixels(color, rect.size);
+}
 
-	uint8_t data[3] {};
-	const uint16_t pixels = rect.size.width * rect.size.height;
-	uint32_t frameBufferSize = 0;
+void ST7735S::encodePixels(const Color& color, const Size& size)
+{
+	const uint16_t pixels = size.width * size.height;
 
 	if (pixels > MAX_PIXELS)
 	{
 		return;
 	}
+
+	uint32_t frameBufferSize = 0;
 
 	switch(m_pixelFormat)
 	{
@@ -625,18 +668,15 @@ void ST7735S::draw(const Rect& rect, const Color& color)
 	    uint8_t b = color.b >> 4;
 
 	    // 2 RGB444 pixels = 3 bytes
-	    data[0] = (r << 4) | g;
-	    data[1] = (b << 4) | r;
-	    data[2] = (g << 4) | b;
 
 	    frameBufferSize = (pixels / 2) * 3 + (pixels % 2) * 2;
 
 	    size_t i = 0;
 	    for (; i < (pixels / 2) * 3; i += 3)
 	    {
-	        m_frameBuffer[i]     = data[0];
-	        m_frameBuffer[i + 1] = data[1];
-	        m_frameBuffer[i + 2] = data[2];
+	        m_frameBuffer[i]     = (r << 4) | g;
+	        m_frameBuffer[i + 1] = (b << 4) | r;
+	        m_frameBuffer[i + 2] = (g << 4) | b;
 	    }
 
 	    if (pixels % 2 != 0)
@@ -645,7 +685,7 @@ void ST7735S::draw(const Rect& rect, const Color& color)
 	        m_frameBuffer[i + 1] = b << 4;
 	    }
 
-	    transport(m_frameBuffer, frameBufferSize);
+	    SendPixels(m_frameBuffer, frameBufferSize);
 
 	    break;
 	}
@@ -656,18 +696,15 @@ void ST7735S::draw(const Rect& rect, const Color& color)
 		    ((color.g >> 2) << 5)  |
 		    (color.b >> 3);
 
-		data[0] = rgb565 >> 8;
-		data[1] = rgb565 & 0xFF;
-
 		frameBufferSize = pixels * 2;
 
 		for (size_t i = 0; i < frameBufferSize; i += 2)
 		{
-			m_frameBuffer[i] 	 = data[0];
-			m_frameBuffer[i + 1] = data[1];
+			m_frameBuffer[i] 	 = rgb565 >> 8;
+			m_frameBuffer[i + 1] = rgb565 & 0xFF;
 		}
 
-		transport(m_frameBuffer, frameBufferSize);
+		SendPixels(m_frameBuffer, frameBufferSize);
 
 		break;
 	}
@@ -677,20 +714,16 @@ void ST7735S::draw(const Rect& rect, const Color& color)
 	    uint8_t g = color.g >> 2;
 	    uint8_t b = color.b >> 2;
 
-	    data[0] = r << 2;
-	    data[1] = g << 2;
-	    data[2] = b << 2;
-
 		frameBufferSize = pixels * 3;
 
 		for (size_t i = 0; i < frameBufferSize; i += 3)
 		{
-			m_frameBuffer[i] 	 = data[0];
-			m_frameBuffer[i + 1] = data[1];
-			m_frameBuffer[i + 2] = data[2];
+			m_frameBuffer[i] 	 = r << 2;
+			m_frameBuffer[i + 1] = g << 2;
+			m_frameBuffer[i + 2] = b << 2;
 		}
 
-		transport(m_frameBuffer, frameBufferSize);
+		SendPixels(m_frameBuffer, frameBufferSize);
 
 	    break;
 	}
@@ -699,6 +732,107 @@ void ST7735S::draw(const Rect& rect, const Color& color)
 		break;
 	}
 	}
+}
+
+void ST7735S::encodePixels(const uint32_t* image, const Size& size)
+{
+	const size_t pixels = size.width * size.height;
+
+	if (pixels > MAX_PIXELS)
+	{
+		return;
+	}
+
+	size_t frameBufferSize = 0;
+    uint8_t r0, g0, b0;
+
+	switch(m_pixelFormat)
+	{
+	case PixelFormat::RGB444:
+	{
+	    frameBufferSize = (pixels / 2) * 3 + (pixels % 2) * 2;
+
+	    size_t i = 0;
+	    size_t j = 0;
+
+	    uint8_t r1, g1, b1;
+
+	    for (; i < (pixels / 2) * 3; i += 3, j += 2)
+	    {
+	    	r0 = image[j] >> 20;
+	    	g0 = image[j] >> 12;
+	    	b0 = image[j] >> 4;
+
+	    	r1 = image[j + 1] >> 20;
+	    	g1 = image[j + 1] >> 12;
+	    	b1 = image[j + 1] >> 4;
+
+	    	m_frameBuffer[i]     = (r0 << 4) | (g0 & 0xF);
+	    	m_frameBuffer[i + 1] = (b0 << 4) | (r1 & 0xF);
+	    	m_frameBuffer[i + 2] = (g1 << 4) | (b1 & 0xF);
+	    }
+
+	    if (pixels % 2 != 0)
+	    {
+	    	r0 = (image[j] >> 20);
+	    	g0 = (image[j] >> 12);
+	    	b0 = (image[j] >> 4);
+
+	        m_frameBuffer[i]     = (r0 << 4) | (g0 & 0xF);
+	        m_frameBuffer[i + 1] = b0 << 4;
+	    }
+
+	    SendPixels(m_frameBuffer, frameBufferSize);
+
+	    break;
+	}
+	case PixelFormat::RGB565:
+	{
+		frameBufferSize = pixels * 2;
+
+		for (size_t i = 0, j = 0; i < frameBufferSize; i += 2, ++j)
+		{
+			r0 = (image[j] >> 19);
+			g0 = (image[j] >> 10) & 0x3F;
+			b0 = (image[j] >> 3)  & 0x1F;
+
+			m_frameBuffer[i]     = (r0 << 3) | (g0 >> 3);
+			m_frameBuffer[i + 1] = (g0 << 5) | b0;
+		}
+
+		SendPixels(m_frameBuffer, frameBufferSize);
+
+		break;
+	}
+	case PixelFormat::RGB666:
+	{
+		frameBufferSize = pixels * 3;
+
+		for (size_t i = 0, j = 0; i < frameBufferSize; i += 3, ++j)
+		{
+	    	r0 = image[j] >> 18;
+	    	g0 = image[j] >> 10;
+	    	b0 = image[j] >> 2;
+
+			m_frameBuffer[i] 	 = r0 << 2;
+			m_frameBuffer[i + 1] = g0 << 2;
+			m_frameBuffer[i + 2] = b0 << 2;
+		}
+
+		SendPixels(m_frameBuffer, frameBufferSize);
+
+	    break;
+	}
+	default:
+	{
+		break;
+	}
+	}
+}
+
+void ST7735S::SendPixels(const uint8_t* value, size_t size)
+{
+	transport(value, size);
 }
 
 uint16_t ST7735S::getSize(Coordinates coordinates) const
