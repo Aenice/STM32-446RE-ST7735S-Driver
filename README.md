@@ -30,7 +30,7 @@ This project demonstrates how to create a reusable hardware driver for the **ST7
 
 * 🧠 **MCU:** STM32F446RE
 * 🔌 **Board:** NUCLEO-F446RE
-* 🖥️ **Display's controller:** ST7735S TFT
+* 🖥️ **Display Controller:** ST7735S TFT
 * 🔗 **Interface:** SPI
 * ⚡ Data Transfer: DMA
   
